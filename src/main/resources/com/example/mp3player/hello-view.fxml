@@ -144,18 +144,23 @@
                                 <Font name="Helvetica Neue" size="17.0" />
                             </font>
                         </Button>
-                        <Button fx:id="pauseButton" mnemonicParsing="false" text="Pause">
+                        <Button fx:id="pauseButton" mnemonicParsing="false" onAction="#pauseMedia" text="Pause">
                             <font>
                                 <Font name="Helvetica Neue" size="17.0" />
                             </font>
                         </Button>
-                        <Button fx:id="playButton" mnemonicParsing="false" prefHeight="31.0" prefWidth="59.0" text="Play">
+                        <Button fx:id="playButton" mnemonicParsing="false" onAction="#playMedia" prefHeight="31.0" prefWidth="59.0" text="Play">
                             <font>
                                 <Font name="Helvetica Neue" size="17.0" />
                             </font>
                         </Button>
                     </children>
                 </HBox>
+            <Label layoutX="460.0" layoutY="88.0" text="Громкость" textFill="WHITE" AnchorPane.bottomAnchor="4.799999999999997" AnchorPane.rightAnchor="198.39999999999998">
+               <font>
+                  <Font size="14.0" />
+               </font>
+            </Label>
             </children>
         </AnchorPane>
     </children>
