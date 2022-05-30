@@ -1,0 +1,7 @@
+private List<String> searchList(String search Songs, List<String> listOfStrings) {
+        List<String> search Songs Array = Arrays.asList(search Songs.trim().split(" "));
+        return list Of Strings.stream().filter(input -> {
+            return search Songs Array.stream().allMatch(song ->
+                    input.toLowerCase().contains(song.toLowerCase()));
+        }).collect(Collectors.toList());
+    }
