@@ -1,0 +1,72 @@
+package com.university.IntelligentLearningEnvironment.controllers;
+
+import javafx.fxml.FXML;
+import javafx.scene.control.ListView;
+import javafx.scene.input.DragEvent;
+import javafx.scene.input.MouseEvent;
+import javafx.stage.Stage;
+
+import java.io.File;
+
+public class TestController extends AbstractController {
+    private static final String PATH_TO_FXML    = "test_page.fxml";
+    private static Stage stage = null;
+
+    private static void initializeStage() {
+        if (stage == null) {
+            stage = controllerHelper.prepareStage(PATH_TO_FXML);
+        }
+    }
+
+    public static void showPage() {
+        initializeStage();
+        if(!stage.isShowing()) {
+            stage.show();
+        }
+    }
+
+    @FXML
+    private ListView<InnerContainer> viewList;
+
+    @FXML
+    void initialize() {
+        assert viewList != null : "fx:id=\"listView\" was not injected: check your FXML file 'test_page.fxml'.";
+        viewList.getItems().add(new InnerContainer("Haha"));
+        viewList.getItems().add(new InnerContainer("12345"));
+    }
+
+    @FXML
+    void myClickedOnViewEvent(MouseEvent event) {
+        if (event.equals(MouseEvent.MOUSE_CLICKED) && event.getClickCount() > 1) {
+            String selectedItem = viewList.getSelectionModel().getSelectedItem().getContent();
+            showAlert("ANSWER", selectedItem);
+        }
+    }
+
+    @FXML
+    void droppedMethod(DragEvent event) {
+        Object acceptingObject = event.getAcceptingObject();
+        File inputFile;
+
+        showAlert("ANSWER", acceptingObject.toString());
+    }
+
+    private static class InnerContainer {
+        private String content;
+
+        public InnerContainer(String content) {
+            this.content = content;
+        }
+
+        public String getContent() {
+            return content;
+        }
+
+        @Override
+        public String toString() {
+            return "InnerContainer{" +
+                    "content='" + content + '\'' +
+                    '}';
+        }
+    }
+}
