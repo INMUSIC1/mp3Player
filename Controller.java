@@ -5,8 +5,6 @@ import javafx.beans.Observable;
 import javafx.beans.binding.Bindings;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -20,11 +18,13 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
-import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.Callable;
@@ -34,31 +34,34 @@ import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.util.Duration;
 
-public class Controller implements Initializable{
+import org.apache.commons.io.FileUtils;
+import static org.apache.commons.io.FileUtils.copyFileToDirectory;
 
+
+public class Controller implements Initializable {
     private ImageView iconPlay;
     private ImageView iconPause;
     private ImageView iconNext;
     private ImageView iconPrevious;
-
+    /** кнопка "Артисты" */
     @FXML
     private Button artists;
-
+    /** кнопка "Последние добавленные" */
     @FXML
     private Button lastAdded;
-
+    /** кнопка "Медиатека"*/
     @FXML
     private Button mediaLibrary;
-
+    /** кнопка "Плейлисты" */
     @FXML
     private Button playlists;
-
+    /** текстовое поле для поиска */
     @FXML
     private TextField searcher;
-
+    /** кнопка "Добавить песню" */
     @FXML
     private Button songs;
-
+    /** кнопка, запускающая процесс поиска */
     @FXML
     private Button toSearch;
 
@@ -103,7 +106,8 @@ public class Controller implements Initializable{
     @FXML
     private ListView<String> listViewSongs;
 
-    ArrayList<String> downloadedSongs = new ArrayList<>(Arrays.asList("OG Buda & дора - Капли", "Лолита - На Титанике"));
+    //private  List<String> downloadedSongs;
+                //= new ArrayList<>(Arrays.asList("hhhhh"));
 
     private Timer timer;
     private TimerTask task;
@@ -111,16 +115,20 @@ public class Controller implements Initializable{
     private double totalTime;
     private double currentTime;
     private boolean active_track;
-    private Playlist current_playlist = new Playlist();
-    private ArrayList<Playlist> playlist = new ArrayList<>();
-    private ArrayList<String> playlist_names = new ArrayList<>();
-    private ArrayList<Song> current_songs = new ArrayList<>();
+    private int flag1 = 0;
+    private int songNumber;
+    //private Playlist current_playlist = new Playlist();
+    //private ArrayList<Playlist> playlist = new ArrayList<>();
+    //private ArrayList<String> playlist_names = new ArrayList<>();
+    private static String current_playlist = "allSongs";
+    //private ArrayList<Song> current_songs = new ArrayList<>();
     private ArrayList<String> current_song_names = new ArrayList<>();
-    private File main_directory = new File("src/main/java/com/example/mp3player/Playlist.java");
+    private File main_directory = new File("C:\\Playlists");
 
     @FXML
     private Label chosenSongFromListView;
 
+    /** активация кнопки и наложение эффекта */
     @FXML
     void onMediaLibraryAsClick(ActionEvent event) {
         DropShadow shadow = new DropShadow();
@@ -128,24 +136,31 @@ public class Controller implements Initializable{
         mediaLibrary.setOnAction(event1 -> mediaLibrary.setEffect(shadow));
         mediaLibrary.setOnAction(event1 -> System.out.println("Медиатека"));
     }
-
+    /** активация кнопки "Плейлисты" */
     @FXML
     void onPlaylistsAsClick(ActionEvent event) {
         playlists.setOnAction(event2 -> System.out.println("Плейлист"));
     }
 
+    /** активация кнопки, запускающей поиск */
     @FXML
     void toSearch(ActionEvent event) {
         toSearch.setOnAction(event3 -> System.out.println("Поиск..."));
         System.out.println("Поиск: " + searcher.getText());
         listViewSongs.getItems().clear();
-        listViewSongs.getItems().addAll(searchList(searcher.getText(), downloadedSongs));
+        listViewSongs.getItems().addAll(searchList(searcher.getText(), current_song_names));
     }
 
     void readyToPlay(){
         setIcons();
     }
 
+    /** При нажатии кнопки "Добавить песню" появляется диалоговое окно, в котором предлагается выбрать песню для проигрывания.
+     * Далее трек проигрывается
+     * @throws Exception при возникновении ошибки
+     * @see FileChooser.ExtensionFilter при выборе песни в диалоговом окне есть фильтр на выбор файла в формате mp3
+     *
+     */
     @FXML
     void onSongsAsClick(ActionEvent event) throws Exception {
         songs.setOnAction(event4 -> System.out.println("Песни"));
@@ -156,6 +171,29 @@ public class Controller implements Initializable{
         File file = fileChooser.showOpenDialog(null);
         String filePath = file.toURI().toString();
 
+        current_playlist = "allSongs";
+            String song = filePath.replaceAll("file:/", "");
+            song = song.replaceAll("%20", " ");
+            flag1 = 0;
+            List<String> lines = FileUtils.readLines(new File("C:\\Playlists\\allSongs.txt"), "utf-8");
+            if (lines.size() != 0) {
+                for (int i = 0; i < lines.size(); i++) {
+                    if (lines.get(i).equals(song)) {
+                        flag1++;
+                    }
+                }
+                if (flag1 == 0) {
+                    FileWriter writer1 = new FileWriter("C:\\Playlists\\allSongs.txt", true);
+                    BufferedWriter bufferWriter = new BufferedWriter(writer1);
+                    bufferWriter.write(song + "\n");
+                    bufferWriter.close();
+                }
+            } else {
+                FileWriter writer1 = new FileWriter("C:\\Playlists\\allSongs.txt", true);
+                BufferedWriter bufferWriter = new BufferedWriter(writer1);
+                bufferWriter.write(song + "\n");
+                bufferWriter.close();
+            }
         songLabel.setText(file.getName());
         if (filePath != null) {
             Media media = new Media(filePath);
@@ -163,7 +201,12 @@ public class Controller implements Initializable{
             bottomMenu.setVisible(true);
             setIcons();
             playMedia();
+            listViewSongs.setVisible(true);
+            //if (running) {
 
+              //  mediaPlayer.stop();
+            //}
+            //playPlaylist();
             volumeSlider.setValue(mediaPlayer.getVolume() * 100);
             volumeSlider.valueProperty().addListener(new InvalidationListener() {
                 @Override
@@ -216,12 +259,12 @@ public class Controller implements Initializable{
                     songSlider.setMax(total.toSeconds());
                 }
             });
-           playButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
-               @Override
-               public void handle(MouseEvent mouseEvent) {
-                   playMedia();
-               }
-           });
+            playButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
+                @Override
+                public void handle(MouseEvent mouseEvent) {
+                    playMedia();
+                }
+            });
             pauseButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
                 @Override
                 public void handle(MouseEvent mouseEvent) {
@@ -229,9 +272,31 @@ public class Controller implements Initializable{
                 }
             });
 
+            listViewSongs.setOnMouseClicked(new EventHandler<MouseEvent>() {
+                @Override
+                public void handle(MouseEvent event) {
+                    if (event.getClickCount() > 1) {
+                        if (running) {
+                            mediaPlayer.stop();
+                        }
+                        songNumber = listViewSongs.getSelectionModel().getSelectedIndex();
+                        try {
+                            playPlaylist();
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                }
+            });
+updateSongs();
 
         }
     }
+
+    /**
+     * @param time установка продолжительности трека
+     * @return возращается формат продолжительности трека --:--:-- или --:--
+     */
     public String getTime(Duration time) {
 
         int hours = (int) time.toHours();
@@ -259,6 +324,8 @@ public class Controller implements Initializable{
         }, mediaPlayer.currentTimeProperty()));
     }
 
+    /** начало работы таймлайна. если песня проигрывается, то видно сколько времени с начала песни прошли и сколько всего длится трек
+     */
     public void beginTimer() {
         timer = new Timer();
         task = new TimerTask() {
@@ -273,16 +340,20 @@ public class Controller implements Initializable{
             }
         };
     }
+
+    /** окончание работы таймлайна. если песня не проигрывается, то таймлайн перестает работать */
     public void cancelTimer() {
         running = false;
         timer.cancel();
     }
 
+    /** активация кнопки "Последние добавленные" */
     @FXML
     void onLastAddedAsClick(ActionEvent event) {
         lastAdded.setOnAction(event5 -> System.out.println("Последние добавленные"));
     }
 
+    /** активация кнопки "Артисты" */
     @FXML
     void onArtistsAsClick(ActionEvent event) {
         artists.setOnAction(event7 -> System.out.println("Артисты"));
@@ -299,19 +370,59 @@ public class Controller implements Initializable{
         return true;
     }
 
-
+    /** восроизвести песню */
     @FXML
     private void playMedia() {
         mediaPlayer.play();
 
     }
+
+    /** поставить на паузу */
     @FXML
     private void pauseMedia() {
         mediaPlayer.pause();
     }
+    //private void changeCurrentPlaylist(String new_name) {
+    //    current_playlist = new_name;
+    //}
 
+    /** проигрывание плейлиста
+     * @throws IOException при возникновении ошибки */
+    private void playPlaylist() throws IOException {
+        List<String> lines = FileUtils.readLines(new File("C:\\Playlists\\" + current_playlist + ".txt"), "utf-8");
+        String filePath = lines.get(songNumber);
+        File f = new File(filePath);
+        String name = f.getName();
+        URI filepath = URI.create(("file:/" + filePath).replaceAll(" ", "%20"));
+        media = new Media(filepath.toString());
+        mediaPlayer = new MediaPlayer(media);
+        bottomMenu.setVisible(true);
+        songLabel.setText(name);
+        playMedia();
+    }
+
+    /** обновление загруженных песен
+     * @throws IOException при возникновении ошибки
+     */
+    private void updateSongs() throws IOException {
+        Scanner s = new Scanner(new File("C:\\Playlists\\" + current_playlist + ".txt"));
+        ArrayList<String> downloadedSongs = new ArrayList<String>();
+        int length = 0;
+        while (s.hasNextLine()) {
+            String G[] = s.nextLine().split("/");
+            int glength = G.length - 1;
+            downloadedSongs.add(G[glength].replaceAll(".mp3", ""));
+            length++;
+        }
+        s.close();
+        System.out.println("Текущий плейлист: " + current_playlist);
+        listViewSongs.getItems().clear();
+        listViewSongs.getItems().addAll(downloadedSongs);
+    }
+
+    /** установка иконок для кнопок "play", "pause", "next", "previous" */
     private void setIcons(){
-        Image imagePlay = new Image (new File("src/main/resources/com/example/mp3player/asserts/play-button.png").toURI().toString());
+        Image imagePlay = new Image(new File("src/main/resources/com/example/mp3player/asserts/play-button.png").toURI().toString());
         iconPlay = new ImageView(imagePlay);
         iconPlay.setFitWidth(40);
         iconPlay.setFitHeight(40);
@@ -339,7 +450,7 @@ public class Controller implements Initializable{
     }
     @FXML
     public void initialize(URL arg0, ResourceBundle arg1) {
-        listViewSongs.getItems().addAll(downloadedSongs);
+        //listViewSongs.getItems().addAll(lines);
     }
 
     private List<String> searchList(String searchSongs, List<String> listOfStrings) {
