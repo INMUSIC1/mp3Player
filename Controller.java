@@ -5,11 +5,11 @@ import javafx.beans.Observable;
 import javafx.beans.binding.Bindings;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
-import javafx.event.ActionEvent;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -17,8 +17,13 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
+import javafx.util.Duration;
+import org.apache.commons.io.FileUtils;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -29,13 +34,6 @@ import java.net.URL;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
-
-import javafx.scene.media.Media;
-import javafx.scene.media.MediaPlayer;
-import javafx.util.Duration;
-
-import org.apache.commons.io.FileUtils;
-import static org.apache.commons.io.FileUtils.copyFileToDirectory;
 
 
 public class Controller implements Initializable {
@@ -106,6 +104,7 @@ public class Controller implements Initializable {
     @FXML
     private ListView<String> listViewSongs;
 
+    private ListView<String> listViewPlaylists;
     //private  List<String> downloadedSongs;
                 //= new ArrayList<>(Arrays.asList("hhhhh"));
 
@@ -118,8 +117,8 @@ public class Controller implements Initializable {
     private int flag1 = 0;
     private int songNumber;
     //private Playlist current_playlist = new Playlist();
-    //private ArrayList<Playlist> playlist = new ArrayList<>();
-    //private ArrayList<String> playlist_names = new ArrayList<>();
+    private ArrayList<String> playlist = new ArrayList<>();
+    private ArrayList<String> playlist_names = new ArrayList<>();
     private static String current_playlist = "allSongs";
     //private ArrayList<Song> current_songs = new ArrayList<>();
     private ArrayList<String> current_song_names = new ArrayList<>();
@@ -138,8 +137,71 @@ public class Controller implements Initializable {
     }
     /** активация кнопки "Плейлисты" */
     @FXML
-    void onPlaylistsAsClick(ActionEvent event) {
+    void onPlaylistsAsClick(ActionEvent event) throws IOException {
         playlists.setOnAction(event2 -> System.out.println("Плейлист"));
+        try {
+            DirectoryChooser directoryChooser = new DirectoryChooser();
+            File playlist_import_dir = directoryChooser.showDialog(null);
+            while (Objects.requireNonNull(playlist_import_dir.listFiles()).length == 0) {
+                playlist_import_dir = directoryChooser.showDialog(null);
+            }
+            File dir = new File(playlist_import_dir.toURI());
+            List<File> lst = new ArrayList<>();
+            flag1 = 0;
+            String import_dir = null;
+            for (File file : Objects.requireNonNull(dir.listFiles())) {
+                if ((file.isFile()) & (file.toString().endsWith("mp3"))) {
+                    lst.add(file);
+                    String trackfromplaylist = file.toString();
+                    trackfromplaylist = trackfromplaylist.replaceAll("%20", " ");
+                    trackfromplaylist = trackfromplaylist.replace("\\", "/");
+                    List<String> lines = FileUtils.readLines(new File("C:\\Playlists\\allSongs.txt"), "utf-8");
+                    if (lines.size() != 0) {
+                        for (int i = 0; i < lines.size(); i++) {
+                            if (lines.get(i).equals(trackfromplaylist)) {
+                                flag1++;
+                            }
+                        }
+                        if (flag1 == 0) {
+                            FileWriter writer = new FileWriter("C:\\Playlists\\allSongs.txt", true);
+                            BufferedWriter bufferWriter = new BufferedWriter(writer);
+                            bufferWriter.write(trackfromplaylist + "\n");
+                            bufferWriter.close();
+                        }
+                    } else {
+                        FileWriter writer = new FileWriter("C:\\Playlists\\allSongs.txt", true);
+                        BufferedWriter bufferWriter = new BufferedWriter(writer);
+                        bufferWriter.write(trackfromplaylist + "\n");
+                        bufferWriter.close();
+                    }
+                    String directory = playlist_import_dir.toString().replace("\\", "/");
+                    ArrayList<String> array = new ArrayList<String>(List.of(directory.split("/")));
+                    import_dir = (String) array.get(array.size() - 1);
+                    FileWriter writer2 = new FileWriter("C:\\Playlists\\" + import_dir + ".txt", true);
+                    BufferedWriter bufferWriter1 = new BufferedWriter(writer2);
+                    bufferWriter1.write(trackfromplaylist + "\n");
+                    bufferWriter1.close();
+                    File createFile = new File("C:\\Playlists\\" + import_dir + ".txt");
+//                    if (!createFile.exists())
+//                        try {
+//                            createFile.createNewFile();
+//                        } catch (IOException e) {
+//                            throw new RuntimeException(e);
+//                        }
+                }
+            }
+            current_playlist = import_dir;
+            System.out.println(current_playlist);
+            updateSongs();
+        } catch (RuntimeException | IOException e) {
+            System.out.println("incorrect input");
+        }
+       if (listViewSongs != null) {
+           bottomMenu.setVisible(true);
+           setIcons();
+           playPlaylist();
+           //listViewSongs.setVisible(true);
+        }
     }
 
     /** активация кнопки, запускающей поиск */
@@ -202,93 +264,7 @@ public class Controller implements Initializable {
             setIcons();
             playMedia();
             listViewSongs.setVisible(true);
-            //if (running) {
-
-              //  mediaPlayer.stop();
-            //}
-            //playPlaylist();
-            volumeSlider.setValue(mediaPlayer.getVolume() * 100);
-            volumeSlider.valueProperty().addListener(new InvalidationListener() {
-                @Override
-                public void invalidated(Observable observable) {
-                    mediaPlayer.setVolume(volumeSlider.getValue() / 100);
-                }
-            });
-            mediaPlayer.currentTimeProperty().addListener(new ChangeListener<Duration>() {
-                @Override
-                public void changed(ObservableValue<? extends Duration> observableValue, Duration oldValue, Duration newValue) {
-                    songSlider.setValue(newValue.toSeconds());
-                }
-            });
-            mediaPlayer.currentTimeProperty().addListener(new ChangeListener<Duration>() {
-                @Override
-                public void changed(ObservableValue<? extends Duration> observableValue, Duration oldTime, Duration newTime) {
-                    bindCurrentTimeLabel();
-                    if (!songSlider.isValueChanging()) {
-                        songSlider.setValue(newTime.toSeconds());
-                    }
-                    labelCurrentTime.getText();
-                    labelTotalTime.getText();
-                }
-            });
-            mediaPlayer.totalDurationProperty().addListener(new ChangeListener<Duration>() {
-                @Override
-                public void changed(ObservableValue<? extends Duration> observableValue, Duration oldDuration, Duration newDuration) {
-                    songSlider.setMax(newDuration.toSeconds());
-                    labelTotalTime.setText(getTime(newDuration));
-
-                }
-            });
-            songSlider.setOnMousePressed(new EventHandler<MouseEvent>() {
-                @Override
-                public void handle(MouseEvent mouseEvent) {
-                    mediaPlayer.seek(Duration.seconds(songSlider.getValue()));
-
-                }
-            });
-            songSlider.setOnMouseDragged(new EventHandler<MouseEvent>() {
-                @Override
-                public void handle(MouseEvent mouseEvent) {
-                    mediaPlayer.seek(Duration.seconds(songSlider.getValue()));
-                }
-            });
-            mediaPlayer.setOnReady(new Runnable() {
-                @Override
-                public void run() {
-                    Duration total = media.getDuration();
-                    songSlider.setMax(total.toSeconds());
-                }
-            });
-            playButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
-                @Override
-                public void handle(MouseEvent mouseEvent) {
-                    playMedia();
-                }
-            });
-            pauseButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
-                @Override
-                public void handle(MouseEvent mouseEvent) {
-                    pauseMedia();
-                }
-            });
-
-            listViewSongs.setOnMouseClicked(new EventHandler<MouseEvent>() {
-                @Override
-                public void handle(MouseEvent event) {
-                    if (event.getClickCount() > 1) {
-                        if (running) {
-                            mediaPlayer.stop();
-                        }
-                        songNumber = listViewSongs.getSelectionModel().getSelectedIndex();
-                        try {
-                            playPlaylist();
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-                }
-            });
-updateSongs();
+            updateSongs();
 
         }
     }
@@ -374,6 +350,88 @@ updateSongs();
     @FXML
     private void playMedia() {
         mediaPlayer.play();
+        running=true;
+        volumeSlider.setValue(mediaPlayer.getVolume() * 100);
+        volumeSlider.valueProperty().addListener(new InvalidationListener() {
+            @Override
+            public void invalidated(Observable observable) {
+                mediaPlayer.setVolume(volumeSlider.getValue() / 100);
+            }
+        });
+        mediaPlayer.currentTimeProperty().addListener(new ChangeListener<Duration>() {
+            @Override
+            public void changed(ObservableValue<? extends Duration> observableValue, Duration oldValue, Duration newValue) {
+                songSlider.setValue(newValue.toSeconds());
+            }
+        });
+        mediaPlayer.currentTimeProperty().addListener(new ChangeListener<Duration>() {
+            @Override
+            public void changed(ObservableValue<? extends Duration> observableValue, Duration oldTime, Duration newTime) {
+                bindCurrentTimeLabel();
+                if (!songSlider.isValueChanging()) {
+                    songSlider.setValue(newTime.toSeconds());
+                }
+                labelCurrentTime.getText();
+                labelTotalTime.getText();
+            }
+        });
+        mediaPlayer.totalDurationProperty().addListener(new ChangeListener<Duration>() {
+            @Override
+            public void changed(ObservableValue<? extends Duration> observableValue, Duration oldDuration, Duration newDuration) {
+                songSlider.setMax(newDuration.toSeconds());
+                labelTotalTime.setText(getTime(newDuration));
+
+            }
+        });
+        songSlider.setOnMousePressed(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                mediaPlayer.seek(Duration.seconds(songSlider.getValue()));
+
+            }
+        });
+        songSlider.setOnMouseDragged(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                mediaPlayer.seek(Duration.seconds(songSlider.getValue()));
+            }
+        });
+        mediaPlayer.setOnReady(new Runnable() {
+            @Override
+            public void run() {
+                Duration total = media.getDuration();
+                songSlider.setMax(total.toSeconds());
+            }
+        });
+        playButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                playMedia();
+            }
+        });
+        pauseButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                pauseMedia();
+            }
+        });
+
+        listViewSongs.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                if (event.getClickCount() > 1) {
+                    if (running) {
+                        mediaPlayer.stop();
+                    }
+                    songNumber = listViewSongs.getSelectionModel().getSelectedIndex();
+                    try {
+                        playPlaylist();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+        });
 
     }
 
@@ -382,9 +440,9 @@ updateSongs();
     private void pauseMedia() {
         mediaPlayer.pause();
     }
-    //private void changeCurrentPlaylist(String new_name) {
-    //    current_playlist = new_name;
-    //}
+//    private void changeCurrentPlaylist(String new_name) {
+//        current_playlist = new_name;
+//    }
 
     /** проигрывание плейлиста
      * @throws IOException при возникновении ошибки */
@@ -415,11 +473,24 @@ updateSongs();
             length++;
         }
         s.close();
-        System.out.println("Текущий плейлист: " + current_playlist);
+        //System.out.println("Текущий плейлист: " + current_playlist);
         listViewSongs.getItems().clear();
         listViewSongs.getItems().addAll(downloadedSongs);
     }
-
+//    private void updatePlaylist() throws IOException {
+//        int playlist_amount = Objects.requireNonNull(main_directory.listFiles()).length;
+//        if (playlist_amount > 0) {
+//           playlist.clear();
+//           playlist_names.clear();
+//           listViewPlaylists.getItems().clear();
+//            for (File f : Objects.requireNonNull(main_directory.listFiles())) {
+//                playlist.add(f.getName());
+//                playlist_names.add(f.getName().replaceAll(".txt", ""));
+//            }
+//            //listViewPlaylists.getItems().clear();
+//            listViewPlaylists.getItems().addAll(playlist_names);
+//        }
+//    }
     /** установка иконок для кнопок "play", "pause", "next", "previous" */
     private void setIcons(){
         Image imagePlay = new Image(new File("src/main/resources/com/example/mp3player/asserts/play-button.png").toURI().toString());
@@ -454,9 +525,9 @@ updateSongs();
     }
 
     private List<String> searchList(String searchSongs, List<String> listOfStrings) {
-        List<String> searchSongsArray = Arrays.asList(searchSongs.trim().split(" "));
+        List<String> current_song_names = Arrays.asList(searchSongs.trim().split(" "));
         return listOfStrings.stream().filter(input -> {
-            return searchSongsArray.stream().allMatch(song ->
+            return current_song_names.stream().allMatch(song ->
                     input.toLowerCase().contains(song.toLowerCase()));
         }).collect(Collectors.toList());
     }
